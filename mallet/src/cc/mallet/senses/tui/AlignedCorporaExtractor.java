@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,15 +47,22 @@ public class AlignedCorporaExtractor {
 	(AlignedCorporaExtractor.class, "stoplist-right", "FILE", true, null,
 	 "Read \"stop words\" from a file, one per line. For langauge l2 in alignment l1-l2.", null);
 
-	static CommandOption.String outputDir = new CommandOption.String
-	(AlignedCorporaExtractor.class, "output-dir", "STRING", true, null,
-	 "output directory", null);
+	static CommandOption.String outputDirMixed = new CommandOption.String
+	(AlignedCorporaExtractor.class, "output-dir-mix", "STRING", true, null,
+	 "output directory for mixed languages", null);
+
+	static CommandOption.String outputDirTarget = new CommandOption.String
+	(AlignedCorporaExtractor.class, "output-dir-target", "STRING", true, null,
+	 "output directory for the target language", null);
 
 	static CommandOption.File targetWordFile = new CommandOption.File
-	(AlignedCorporaExtractor.class, "target-word-file", "FILE", true, null,
+	(AlignedCorporaExtractor.class, "target-word-file", "FILE", false, null,
 	 "Input file containing all variantions of the target word, such as 'drug', 'drugs', " +
 	 "one per line, lowercased.", null);
 
+	static CommandOption.SpacedStrings targetWordList = new CommandOption.SpacedStrings
+	(AlignedCorporaExtractor.class, "target-word-list", "SPACED_STRING", false, null,
+			"a list of target words, such as drug drugs. use either this option or target-word-file", null);
 
 	static CommandOption.Integer windowSize = new CommandOption.Integer
 		(AlignedCorporaExtractor.class, "window-size", "INTEGER", false, 10,
@@ -65,17 +73,25 @@ public class AlignedCorporaExtractor {
 	public HashSet<String> stopwordsRight;
 	public HashSet<String> targetWords;
 	protected int fileCounter;
-	protected String outputFolder;
+	protected String outputFolderMix;
+	protected String outputFolderTarget;
 
 	private static final Pattern LEX_NON_ALPHA = Pattern.compile("\\p{Digit}+|\\p{Punct}");
 
 	public AlignedCorporaExtractor () {
 		this.stopwordsLeft = this.readFile(stoplistFileLeft.value(), null);
 		this.stopwordsRight = this.readFile(stoplistFileRight.value(), null);
-		this.targetWords = this.readFile(targetWordFile.value(), null);
+		if (targetWordList.value() != null) {
+			this.targetWords = new HashSet<String> ();
+			for (String s:targetWordList.value())
+				this.targetWords.add(s);
+		} else
+			this.targetWords = this.readFile(targetWordFile.value(), null);
 		this.fileCounter = 1;
-		this.outputFolder = outputDir.value()+"/";
-		new File(this.outputFolder).mkdirs();
+		this.outputFolderMix = outputDirMixed.value()+"/";
+		this.outputFolderTarget = outputDirTarget.value()+"/";
+		new File(this.outputFolderMix).mkdirs();
+		new File(this.outputFolderTarget).mkdirs();
 	}
 
 	public void run () {
@@ -103,9 +119,17 @@ public class AlignedCorporaExtractor {
 			for (String align:alignList) {
 				// 11-9
 				alignNum = align.split("-");
-				leftIdx = Integer.parseInt(alignNum[0]);
-				rightIdx = Integer.parseInt(alignNum[1]);
-				right2left.put(rightIdx, leftIdx);
+				if (alignNum.length != 2)
+					continue;
+				try {
+					leftIdx = Integer.parseInt(alignNum[0]);
+					rightIdx = Integer.parseInt(alignNum[1]);
+					right2left.put(rightIdx, leftIdx);
+				} catch (Exception e) {
+					System.out.println("parseInt exception: "+Arrays.asList(alignNum));
+					e.printStackTrace();
+					continue;
+				}
 			}
 			// right list contains the target language (say, English)
 			for (int right=0; right<rightList.size(); right++) {
@@ -154,7 +178,8 @@ public class AlignedCorporaExtractor {
 			System.out.println("left: "+len+" right: "+contextRight.size());
 			System.exit(-1);
 		}
-		String file = this.outputFolder+this.fileCounter+".txt";
+		String fileMix = this.outputFolderMix+this.fileCounter+".txt";
+		String fileTarget = this.outputFolderTarget+this.fileCounter+".txt";
 		StringBuilder sbLeft = new StringBuilder(), sbRight = new StringBuilder();
 		this.fileCounter++;
 		if (fileCounter % 1000 == 0) {
@@ -169,11 +194,14 @@ public class AlignedCorporaExtractor {
 			sbRight.append(" ");
 		}
 		try {
-			BufferedWriter fos = new BufferedWriter(new FileWriter(file));
-			fos.write(sbLeft.toString());
-			fos.write("\n");
-			fos.write(sbRight.toString());
-			fos.close();
+			BufferedWriter fosMix = new BufferedWriter(new FileWriter(fileMix));
+			BufferedWriter fosTarget = new BufferedWriter(new FileWriter(fileTarget));
+			fosMix.write(sbLeft.toString());
+			fosMix.write("\n");
+			fosMix.write(sbRight.toString());
+			fosMix.close();
+			fosTarget.write(sbRight.toString());
+			fosTarget.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
