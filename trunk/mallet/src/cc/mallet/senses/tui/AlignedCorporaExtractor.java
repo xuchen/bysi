@@ -76,17 +76,17 @@ public class AlignedCorporaExtractor {
 	protected String outputFolderMix;
 	protected String outputFolderTarget;
 
-	private static final Pattern LEX_NON_ALPHA = Pattern.compile("\\p{Digit}+|\\p{Punct}");
+	private static final Pattern LEX_NON_ALPHA = Pattern.compile("\\p{Digit}+|\\p{P}");
 
 	public AlignedCorporaExtractor () {
-		this.stopwordsLeft = this.readFile(stoplistFileLeft.value(), null);
-		this.stopwordsRight = this.readFile(stoplistFileRight.value(), null);
+		this.stopwordsLeft = readFile(stoplistFileLeft.value(), null);
+		this.stopwordsRight = readFile(stoplistFileRight.value(), null);
 		if (targetWordList.value() != null) {
 			this.targetWords = new HashSet<String> ();
 			for (String s:targetWordList.value())
 				this.targetWords.add(s);
 		} else
-			this.targetWords = this.readFile(targetWordFile.value(), null);
+			this.targetWords = readFile(targetWordFile.value(), null);
 		this.fileCounter = 1;
 		this.outputFolderMix = outputDirMixed.value()+"/";
 		this.outputFolderTarget = outputDirTarget.value()+"/";
@@ -188,10 +188,12 @@ public class AlignedCorporaExtractor {
 		for (int i=0; i<len; i++) {
 			// don't write the middle one
 			if (i==half) continue;
+			// don't write any target word
+			if (this.targetWords.contains(contextRight.get(i))) continue;
 			sbLeft.append(contextLeft.get(i));
-			sbLeft.append(" ");
+			sbLeft.append("/l ");
 			sbRight.append(contextRight.get(i));
-			sbRight.append(" ");
+			sbRight.append("/r ");
 		}
 		try {
 			BufferedWriter fosMix = new BufferedWriter(new FileWriter(fileMix));
@@ -229,7 +231,7 @@ public class AlignedCorporaExtractor {
 		return ret;
 	}
 
-	public HashSet<String> readFile (File f, String encoding)
+	public static HashSet<String> readFile (File f, String encoding)
 	{
 		HashSet<String> wordSet = new HashSet<String>();
 
