@@ -13,13 +13,6 @@ import java.util.regex.Pattern;
 import cc.mallet.util.CommandOption;
 
 /**
- * Split malformed-xml-based SenseEval dataset (English_sense_induction.tok.lc.txt) per instance per file:
- * throw away punctuation
- * throw away key word in < head > explains < / head >
- * throw away stop words
- *
- * Note: the file should be first tokenized and lowercased by:
- * perl scripts/tokenizer.perl < English_sense_induction.xml | tr [A-Z] [a-z] > English_sense_induction.tok.lc.xml
  * @author Xuchen Yao
  *
  */
@@ -33,6 +26,10 @@ public class MalletTopics2SenseEvalKeys {
 	(MalletTopics2SenseEvalKeys.class, "output", "FILE", true, null,
 			"Output file, should conform to SenseEval .keys format.", null);
 
+	static CommandOption.Boolean applyWeight = new CommandOption.Boolean
+	(MalletTopics2SenseEvalKeys.class, "weight", "String", false, false,
+			"whether to apply weight in output", null);
+
 	protected File input;
 	protected File output;
 
@@ -43,7 +40,7 @@ public class MalletTopics2SenseEvalKeys {
 
 
 
-	public void run (boolean appendWeight) {
+	public void run () {
 		FileLineTokenIterator inputIte = new FileLineTokenIterator(this.input);
 		List<String> inputList;
 		BufferedWriter bw = null;
@@ -69,7 +66,7 @@ public class MalletTopics2SenseEvalKeys {
 					sb.append(nounWithNum);
 					sb.append(" ");
 					sb.append(senseNum);
-					if (appendWeight) {
+					if (applyWeight.value()) {
 						sb.append("/"+inputList.get(3)+" ");
 						sb.append(noun+".C"+inputList.get(4)+"/"+inputList.get(5)+" ");
 						sb.append(noun+".C"+inputList.get(6)+"/"+inputList.get(7)+" ");
@@ -105,7 +102,7 @@ public class MalletTopics2SenseEvalKeys {
 		}
 
 		MalletTopics2SenseEvalKeys e = new MalletTopics2SenseEvalKeys();
-		e.run(true);
+		e.run();
 		System.out.println("done");
 	}
 
