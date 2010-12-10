@@ -69,6 +69,10 @@ public class AlignedCorporaExtractor {
 		 "window size for both left context and right context. The final window" +
 		 " will be window-size*2", null);
 
+	static CommandOption.Boolean writeLeftTargetWord = new CommandOption.Boolean
+	(AlignedCorporaExtractor.class, "write-left-target-word", "BOOLEAN", false, false,
+			"whether to output the target word of l1 (say, 'banque' or 'banc')", null);
+
 	public HashSet<String> stopwordsLeft;
 	public HashSet<String> stopwordsRight;
 	public HashSet<String> targetWords;
@@ -187,7 +191,13 @@ public class AlignedCorporaExtractor {
 		}
 		for (int i=0; i<len; i++) {
 			// don't write the middle one
-			if (i==half) continue;
+			if (i==half) {
+				if (writeLeftTargetWord.value()) {
+					sbLeft.append(contextLeft.get(i));
+					sbLeft.append("/l ");
+				}
+				continue;
+			}
 			// don't write any target word
 			if (this.targetWords.contains(contextRight.get(i))) continue;
 			sbLeft.append(contextLeft.get(i));
