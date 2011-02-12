@@ -76,7 +76,9 @@ public class AlignedCorporaExtractor {
 	public HashSet<String> stopwordsLeft;
 	public HashSet<String> stopwordsRight;
 	public HashSet<String> targetWords;
+	public HashSet<String> targetWordsTranslation;
 	protected int fileCounter;
+	protected long lineCounter;
 	protected String outputFolderMix;
 	protected String outputFolderTarget;
 
@@ -91,7 +93,9 @@ public class AlignedCorporaExtractor {
 				this.targetWords.add(s);
 		} else
 			this.targetWords = readFile(targetWordFile.value(), null);
+		this.targetWordsTranslation = new HashSet<String> ();
 		this.fileCounter = 1;
+		this.lineCounter = 0;
 		this.outputFolderMix = outputDirMixed.value()+"/";
 		this.outputFolderTarget = outputDirTarget.value()+"/";
 		new File(this.outputFolderMix).mkdirs();
@@ -99,6 +103,7 @@ public class AlignedCorporaExtractor {
 	}
 
 	public void run () {
+
 		FileLineTokenIterator alignIte = new FileLineTokenIterator(alignFile.value());
 		FileLineTokenIterator leftIte = new FileLineTokenIterator(inputFileLeft.value());
 		FileLineTokenIterator rightIte = new FileLineTokenIterator(inputFileRight.value());
@@ -116,6 +121,7 @@ public class AlignedCorporaExtractor {
 		HashMap<Integer, Integer> right2left = new HashMap<Integer, Integer>();
 
 		while (alignIte.hasNext()) {
+			this.lineCounter++;
 			alignList = alignIte.next();
 			leftList = leftIte.next();
 			rightList = rightIte.next();
@@ -168,6 +174,8 @@ public class AlignedCorporaExtractor {
 		alignIte.close();
 		leftIte.close();
 		rightIte.close();
+		System.out.println(this.targetWords);
+		System.out.println(this.targetWordsTranslation);
 	}
 
 	/**
@@ -183,7 +191,7 @@ public class AlignedCorporaExtractor {
 			System.exit(-1);
 		}
 		String fileMix = this.outputFolderMix+this.fileCounter+".txt";
-		String fileTarget = this.outputFolderTarget+this.fileCounter+".txt";
+		String fileTarget = this.outputFolderTarget+this.fileCounter+"_"+this.lineCounter+".txt";
 		StringBuilder sbLeft = new StringBuilder(), sbRight = new StringBuilder();
 		this.fileCounter++;
 		if (fileCounter % 1000 == 0) {
@@ -194,6 +202,7 @@ public class AlignedCorporaExtractor {
 			if (i==half) {
 				if (writeLeftTargetWord.value()) {
 					sbLeft.append(contextLeft.get(i));
+					this.targetWordsTranslation.add(contextLeft.get(i));
 					sbLeft.append("/l ");
 				}
 				continue;
