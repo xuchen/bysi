@@ -93,9 +93,13 @@ public class SenseEvalSplitter {
 						file = dir + file;
 						bw = new BufferedWriter(new FileWriter(file));
 					}
-				} else if (!inputList.get(0).startsWith("<")) {
+				}
+				if (!inputList.get(0).startsWith("<") ||
+						(inputList.get(0).equals("<") && inputList.get(1).equals("head"))) {
 					// a normal string, such as:
 					// opec secretary-general subroto < head > explains < / head > : consumers
+					// or a rare case:
+					// < head > part < / head > of a series } tom ...
 					StringBuilder sb = new StringBuilder();
 					for (int i=0; i<inputList.size(); i++) {
 						if (inputList.get(i).equals("<") && inputList.get(i+1).equals("head")
