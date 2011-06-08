@@ -10,6 +10,7 @@ package cc.mallet.classify.tui;
 import java.util.ArrayList;
 import java.util.logging.*;
 import java.util.regex.*;
+import java.util.zip.GZIPInputStream;
 import java.io.*;
 import java.nio.charset.Charset;
 
@@ -20,14 +21,14 @@ import cc.mallet.types.*;
 import cc.mallet.util.*;
 
 /**
- * Command line import tool for loading a sequence of 
- *  instances from a single file, with one instance 
- *  per line of the input file. 
+ * Command line import tool for loading a sequence of
+ *  instances from a single file, with one instance
+ *  per line of the input file.
  *  <p>
  * Despite the name of the class, input data does not
- *  have to be comma-separated, and instance data can 
+ *  have to be comma-separated, and instance data can
  *  remain sequences (rather than unordered vectors).
- * 
+ *
  *  @author Andrew McCallum <a href="mailto:mccallum@cs.umass.edu">mccallum@cs.umass.edu</a>
  */
 
@@ -46,7 +47,7 @@ public class Csv2Vectors {
 	static CommandOption.String lineRegex = new CommandOption.String
 		(Csv2Vectors.class, "line-regex", "REGEX", true, "^(\\S*)[\\s,]*(\\S*)[\\s,]*(.*)$",
 		 "Regular expression containing regex-groups for label, name and data.", null);
-	
+
 	static CommandOption.Integer labelOption = new CommandOption.Integer
 		(Csv2Vectors.class, "label", "INTEGER", true, 2,
 		 "The index of the group containing the label string.\n" +
@@ -60,7 +61,7 @@ public class Csv2Vectors {
 	static CommandOption.Integer dataOption = new CommandOption.Integer
 		(Csv2Vectors.class, "data", "INTEGER", true, 3,
 		 "The index of the group containing the data.", null);
-	
+
 	static CommandOption.File usePipeFromVectorsFile = new CommandOption.File
 		(Csv2Vectors.class, "use-pipe-from", "FILE", true, new File("text.vectors"),
 		 "Use the pipe and alphabets from a previously created vectors file.\n" +
@@ -74,7 +75,7 @@ public class Csv2Vectors {
 	static CommandOption.Boolean keepSequenceBigrams = new CommandOption.Boolean
 		(Csv2Vectors.class, "keep-sequence-bigrams", "[TRUE|FALSE]", false, false,
 		 "If true, final data will be a FeatureSequenceWithBigrams rather than a FeatureVector.", null);
-	
+
 	static CommandOption.Boolean removeStopWords = new CommandOption.Boolean
 		(Csv2Vectors.class, "remove-stopwords", "[TRUE|FALSE]", false, false,
 		 "If true, remove a default list of common English \"stop words\" from the text.", null);
@@ -91,7 +92,7 @@ public class Csv2Vectors {
 	static CommandOption.Boolean preserveCase = new CommandOption.Boolean
 		(Csv2Vectors.class, "preserve-case", "[TRUE|FALSE]", false, false,
 		 "If true, do not force all strings to lowercase.", null);
-	
+
 	static CommandOption.String encoding = new CommandOption.String
 		(Csv2Vectors.class, "encoding", "STRING", true, Charset.defaultCharset().displayName(),
 		 "Character encoding for input file", null);
@@ -123,19 +124,19 @@ public class Csv2Vectors {
 			throw new IllegalArgumentException ("You must include `--input FILE ...' in order to specify a"+
 								"file containing the instances, one per line.");
 		}
-		
+
 		Pipe instancePipe;
 		InstanceList previousInstanceList = null;
-		
+
 		if (usePipeFromVectorsFile.wasInvoked()) {
 
 			// Ignore all options, use a previously created pipe
 
 			previousInstanceList = InstanceList.load (usePipeFromVectorsFile.value);
-			instancePipe = previousInstanceList.getPipe();			
+			instancePipe = previousInstanceList.getPipe();
 		}
 		else {
-			
+
 			// Build a new pipe
 
 			ArrayList<Pipe> pipeList = new ArrayList<Pipe>();
@@ -147,10 +148,10 @@ public class Csv2Vectors {
 				//  pipe will cause "Alphabets don't match" exceptions.
 				pipeList.add(new Target2Label());
 			}
-			
+
 			//
 			// Tokenize the input: first compile the tokenization pattern
-			// 
+			//
 
 			Pattern tokenPattern = null;
 
@@ -161,70 +162,70 @@ public class Csv2Vectors {
 			}
 			else {
 				// Otherwise, try to compile the regular expression pattern.
-				
+
 				try {
 					tokenPattern = Pattern.compile(tokenRegex.value);
 				} catch (PatternSyntaxException pse) {
-					throw new IllegalArgumentException("The token regular expression (" + tokenRegex.value + 
+					throw new IllegalArgumentException("The token regular expression (" + tokenRegex.value +
 									   ") was invalid: " + pse.getMessage());
 				}
 			}
-			
+
 			// Add the tokenizer
 			pipeList.add(new CharSequence2TokenSequence(tokenPattern));
 
-			// 
+			//
 			// Normalize the input as necessary
-			// 
-			
+			//
+
 			if (! preserveCase.value()) {
 				pipeList.add(new TokenSequenceLowercase());
 			}
-			
+
 			if (keepSequenceBigrams.value) {
 				// Remove non-word tokens, but record the fact that they
 				//  were there.
 				pipeList.add(new TokenSequenceRemoveNonAlpha(true));
 			}
-			
+
 			// Stopword removal.
 
 			if (stoplistFile.wasInvoked()) {
 
 				// The user specified a new list
-                
+
 				TokenSequenceRemoveStopwords stopwordFilter =
 					new TokenSequenceRemoveStopwords(stoplistFile.value,
 													 encoding.value,
 													 false, // don't include default list
 													 false,
 													 keepSequenceBigrams.value);
-				
+
 				if (extraStopwordsFile.wasInvoked()) {
 					stopwordFilter.addStopWords(extraStopwordsFile.value);
 				}
-				
+
 				pipeList.add(stopwordFilter);
 			}
 			else if (removeStopWords.value) {
-				
+
 				// The user did not specify a new list, so use the default
 				//  built-in English list, possibly adding extra words.
-				
+
 				TokenSequenceRemoveStopwords stopwordFilter =
 					new TokenSequenceRemoveStopwords(false, keepSequenceBigrams.value);
-				
+
 				if (extraStopwordsFile.wasInvoked()) {
 					stopwordFilter.addStopWords(extraStopwordsFile.value);
 				}
-				
+
 				pipeList.add(stopwordFilter);
 			}
-                        
-			// 
+
+			//
 			// Convert tokens to numeric indices into the Alphabet
 			//
-			
+
 			if (keepSequenceBigrams.value) {
 				// Output is feature sequences with bigram features
 				pipeList.add(new TokenSequence2FeatureSequenceWithBigrams());
@@ -248,26 +249,28 @@ public class Csv2Vectors {
 
 		//
 		// Create the instance list and open the input file
-		// 
+		//
 
 		InstanceList instances = new InstanceList (instancePipe);
 		Reader fileReader;
 
 		if (inputFile.value.toString().equals ("-")) {
 			fileReader = new InputStreamReader (System.in);
-		}
-		else {
+		} else if (inputFile.value.toString().toLowerCase().endsWith(".gz")) {
+			GZIPInputStream s = new GZIPInputStream(new FileInputStream(inputFile.value));
+			fileReader = new InputStreamReader(s, encoding.value);
+		} else {
 			fileReader = new InputStreamReader(new FileInputStream(inputFile.value), encoding.value);
 		}
 
-		// 
+		//
 		// Read instances from the file
 		//
 
 		instances.addThruPipe (new CsvIterator (fileReader, Pattern.compile(lineRegex.value),
 												dataOption.value, labelOption.value, nameOption.value));
-		
-		// 
+
+		//
 		// Save instances to output file
 		//
 
@@ -282,7 +285,7 @@ public class Csv2Vectors {
 		oos.close();
 
 
-		// If we are reusing a pipe from an instance list 
+		// If we are reusing a pipe from an instance list
 		//  created earlier, we may have extended the label
 		//  or feature alphabets. To maintain compatibility,
 		//  we now save that original instance list back to disk
@@ -301,5 +304,5 @@ public class Csv2Vectors {
 	}
 }
 
-	
+
 
