@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import cc.mallet.util.CommandOption;
@@ -32,6 +33,7 @@ public class MalletTopics2SenseEvalKeys {
 
 	protected File input;
 	protected File output;
+	protected Pattern pattern = Pattern.compile(".*?((\\w+).n.(\\d+))");
 
 	public MalletTopics2SenseEvalKeys () {
 		this.input = inputFile.value();
@@ -56,10 +58,19 @@ public class MalletTopics2SenseEvalKeys {
 					continue;
 				} else {
 					// 0 /home/xuchen/giga/senses/SenseEval07Splitted/area.n/area.n.10 1 0.29345695577656067 2 0.2911547075668216 3 0.2589755955289252 0 0.15641274112769285
+					// or:
+					// 0 area.n.10 1 0.29345695577656067 2 0.2911547075668216 3 0.2589755955289252 0 0.15641274112769285
+
 					filePath = inputList.get(1);
-					tokens = filePath.split("/");
-					noun = tokens[tokens.length-2];
-					nounWithNum = tokens[tokens.length-1];
+
+					Matcher m = this.pattern.matcher(filePath);
+					if (!m.find())
+						continue;
+					noun = m.group(2) + ".n";
+					nounWithNum = m.group(1);
+					//tokens = filePath.split("/");
+					//noun = tokens[tokens.length-2];
+					//nounWithNum = tokens[tokens.length-1];
 					senseNum = noun+".C"+inputList.get(2);
 					sb.append(noun);
 					sb.append(" ");
