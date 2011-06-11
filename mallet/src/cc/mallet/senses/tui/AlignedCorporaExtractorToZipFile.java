@@ -127,6 +127,7 @@ public class AlignedCorporaExtractorToZipFile {
 		String[] alignNum;
 		LinkedList<String> contextLeft = new LinkedList<String>();
 		LinkedList<String> contextRight = new LinkedList<String>();
+		LinkedList<Long> lineNumList = new LinkedList<Long>();
 		// we keep a large window
 		final int size = 2*windowSize.value()+1, middle = windowSize.value();
 		// whether the context window is full
@@ -169,9 +170,11 @@ public class AlignedCorporaExtractorToZipFile {
 						// remove the first one to keep fixed size;
 						contextLeft.remove();
 						contextRight.remove();
+						lineNumList.remove();
 					}
 					contextLeft.add(leftList.get(left));
 					contextRight.add(rightList.get(right));
+					lineNumList.add(this.lineCounter);
 					if (full) {
 						/*
 						 * only pay attention to the middle one. we might lose some
@@ -179,7 +182,7 @@ public class AlignedCorporaExtractorToZipFile {
 						 * to the large data set, this shouldn't hurt
 						 */
 						if (targetWords.contains(contextRight.get(middle))) {
-							this.writeContext(contextLeft, contextRight);
+							this.writeContext(contextLeft, contextRight, lineNumList.get(middle));
 						}
 					}
 				}
@@ -204,7 +207,7 @@ public class AlignedCorporaExtractorToZipFile {
 	 * @param contextLeft
 	 * @param contextRight
 	 */
-	protected void writeContext (List<String> contextLeft, List<String> contextRight) {
+	protected void writeContext (List<String> contextLeft, List<String> contextRight, long lineNum) {
 		int len = contextLeft.size(), half = len/2;
 		if (len != contextRight.size()) {
 			System.out.println("left/right context should have the same size!");
@@ -244,7 +247,7 @@ public class AlignedCorporaExtractorToZipFile {
 		     * becomes the label, and all additional text on the line is interpreted
 		     * as a sequence of word tokens.
 			 */
-			String name_label = this.fileCounter + "_" + this.lineCounter + " " + this.label + " ";
+			String name_label = this.fileCounter + "_" + lineNum + " " + this.label + " ";
 			String mixStr = name_label + sbLeft.toString() + " " + sbRight.toString() + "\n";
 			String targetStr = name_label + sbRight.toString() + "\n";
 			this.outGzipMix.write(mixStr.getBytes());
