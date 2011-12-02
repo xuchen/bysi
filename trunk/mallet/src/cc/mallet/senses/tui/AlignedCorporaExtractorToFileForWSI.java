@@ -30,6 +30,7 @@ import cc.mallet.util.CommandOption;
  * Users should use "bin/mallet import-file" to import the data.
  * @author Xuchen Yao
  *
+ * This class outputs an .xml giving statistics about the 35 SemEval-2007 nouns.
  */
 public class AlignedCorporaExtractorToFileForWSI {
 
