@@ -15,6 +15,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 import java.net.URI;
 
 
@@ -46,8 +47,13 @@ public class FileLineTokenIterator implements Iterator<List<String>> {
 
 	public FileLineTokenIterator (File file) {
 		try {
-			this.reader = new BufferedReader (new FileReader(file));
+			if (file.getName().endsWith(".gz")) {
+				this.reader = new BufferedReader (new InputStreamReader(new GZIPInputStream(new FileInputStream(file))));
+			} else
+				this.reader = new BufferedReader (new FileReader(file));
 			this.index = 0;
+			GZIPInputStream in;
+
 		} catch (IOException e) {
 			throw new RuntimeException (e);
 		}
