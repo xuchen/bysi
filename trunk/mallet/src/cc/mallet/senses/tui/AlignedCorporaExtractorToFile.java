@@ -197,6 +197,7 @@ public class AlignedCorporaExtractorToFile {
 						 * to the large data set, this shouldn't hurt
 						 */
 						if (targetWords.contains(contextRight.get(middle))) {
+							this.label = contextRight.get(middle);
 							this.writeContext(contextLeft, contextRight, lineNumList.get(middle));
 						}
 					}
